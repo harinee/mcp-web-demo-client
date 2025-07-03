@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotePad Pro - MCP Demo Client</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📝 NotePad Pro</h1>
+            <p class="subtitle">Secure Note-Taking with MCP Integration</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Server Connection Panel -->
+            <div class="panel">
+                <h2>🔗 Server Connection</h2>
+                <div class="connection-controls">
+                    <div class="server-select">
+                        <label for="challengeSelect">Select Challenge:</label>
+                        <select id="challengeSelect">
+                            <option value="">-- Choose a Challenge --</option>
+                            <option value="9001">Challenge 1 - Basic Prompt Injection</option>
+                            <option value="9002">Challenge 2 - Tool Poisoning</option>
+                            <option value="9003">Challenge 3 - Excessive Permissions</option>
+                            <option value="9004">Challenge 4 - Rug Pull Attack</option>
+                            <option value="9005">Challenge 5 - Tool Shadowing</option>
+                            <option value="9006">Challenge 6 - Indirect Prompt Injection</option>
+                            <option value="9007">Challenge 7 - Token Theft</option>
+                            <option value="9008">Challenge 8 - Malicious Code Execution</option>
+                            <option value="9009">Challenge 9 - Remote Access Control</option>
+                            <option value="9010">Challenge 10 - Multi-Vector Attack</option>
+                        </select>
+                    </div>
+                    
+                    <div class="custom-url">
+                        <label for="customUrl">Custom Server URL:</label>
+                        <input type="text" id="customUrl" placeholder="http://localhost:9001" />
+                    </div>
+                    
+                    <div class="connection-buttons">
+                        <button id="connectBtn" class="btn btn-primary">Connect</button>
+                        <button id="disconnectBtn" class="btn btn-secondary" disabled>Disconnect</button>
+                        <span id="connectionStatus" class="status">Disconnected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Note Management -->
+            <div class="panel">
+                <h2>📋 Note Management</h2>
+                <div class="note-controls">
+                    <textarea id="noteContent" placeholder="Enter your note here..." rows="6"></textarea>
+                    <div class="note-buttons">
+                        <button id="saveNoteBtn" class="btn btn-primary" disabled>Save Note</button>
+                        <button id="loadNotesBtn" class="btn btn-secondary" disabled>Load Notes</button>
+                        <button id="clearNotesBtn" class="btn btn-danger" disabled>Clear All</button>
+                    </div>
+                </div>
+                
+                <div class="notes-display">
+                    <h3>📄 Saved Notes</h3>
+                    <div id="notesContainer" class="notes-list">
+                        <p class="empty-state">No notes saved yet. Connect to a server and save some notes!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Response Display -->
+            <div class="panel">
+                <h2>📡 Server Response</h2>
+                <div id="responseContainer" class="response-display">
+                    <p class="empty-state">Server responses will appear here...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Console -->
+        <div class="debug-panel">
+            <div class="debug-header">
+                <h2>🔍 Debug Console</h2>
+                <button id="toggleDebugBtn" class="btn btn-small">Show Debug</button>
+                <button id="clearDebugBtn" class="btn btn-small">Clear</button>
+            </div>
+            <div id="debugConsole" class="debug-content" style="display: none;">
+                <div class="debug-tabs">
+                    <button class="tab-btn active" data-tab="network">Network</button>
+                    <button class="tab-btn" data-tab="storage">Storage</button>
+                    <button class="tab-btn" data-tab="errors">Errors</button>
+                </div>
+                <div class="debug-content-area">
+                    <div id="networkTab" class="tab-content active">
+                        <div id="networkLogs" class="log-container"></div>
+                    </div>
+                    <div id="storageTab" class="tab-content">
+                        <div id="storageLogs" class="log-container"></div>
+                    </div>
+                    <div id="errorsTab" class="tab-content">
+                        <div id="errorLogs" class="log-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Authentication Panel (Vulnerable) -->
+    <div class="auth-panel">
+        <h3>🔐 User Authentication</h3>
+        <div class="auth-info">
+            <p>Session Token: <span id="sessionToken">Not authenticated</span></p>
+            <p>User ID: <span id="userId">anonymous</span></p>
+            <button id="authBtn" class="btn btn-small">Authenticate</button>
+        </div>
+    </div>
+
+    <script src="mcp-client.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

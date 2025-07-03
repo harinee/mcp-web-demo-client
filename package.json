@@ -1,0 +1,56 @@
+{
+  "name": "mcp-demo-client",
+  "version": "1.0.0",
+  "description": "A deliberately vulnerable MCP (Model Context Protocol) client for educational demonstrations of security vulnerabilities",
+  "main": "index.html",
+  "scripts": {
+    "start": "./start-demo.sh",
+    "proxy": "node proxy-server.js",
+    "mock": "node mock-dvmcp-server.js",
+    "serve": "python3 -m http.server 8080",
+    "test": "echo \"No tests specified - this is a demo application\" && exit 0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "security",
+    "vulnerability",
+    "demo",
+    "educational",
+    "penetration-testing",
+    "security-research"
+  ],
+  "author": "MCP Demo Client Contributors",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/harinee/mcp-web-demo-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/harinee/mcp-web-demo-client/issues"
+  },
+  "homepage": "https://github.com/harinee/mcp-web-demo-client#readme",
+  "engines": {
+    "node": ">=14.0.0",
+    "python": ">=3.6.0"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "warnings": [
+    "⚠️  This software is INTENTIONALLY VULNERABLE",
+    "⚠️  For educational purposes only",
+    "⚠️  Never deploy in production environments",
+    "⚠️  Contains multiple security vulnerabilities by design"
+  ],
+  "security": {
+    "intentionalVulnerabilities": [
+      "XSS (Cross-Site Scripting)",
+      "Code Injection",
+      "Information Disclosure",
+      "Insecure Storage",
+      "CSRF (Cross-Site Request Forgery)",
+      "Arbitrary Code Execution"
+    ],
+    "purpose": "Educational demonstration of MCP security vulnerabilities"
+  }
+}
