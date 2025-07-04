@@ -17,7 +17,8 @@ function log(message) {
 // Create proxy server
 const server = http.createServer((req, res) => {
     // Add CORS headers to all responses
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin || 'http://localhost:8080';
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Token, X-User-ID, X-Session-ID, X-Client-Info, X-Browser-Info, X-Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -72,8 +73,19 @@ const server = http.createServer((req, res) => {
 
     // Create request to DVMCP server
     const proxyReq = http.request(options, (proxyRes) => {
+        // Handle redirects by rewriting location header to use proxy
+        const headers = { ...proxyRes.headers };
+        if (headers.location && headers.location.includes('localhost:' + targetPort)) {
+            // Rewrite redirect location to use proxy
+            headers.location = headers.location.replace(
+                `http://localhost:${targetPort}`,
+                `http://localhost:${PROXY_PORT}/${targetPort}`
+            );
+            log(`Rewriting redirect location: ${proxyRes.headers.location} -> ${headers.location}`);
+        }
+        
         // Copy status and headers from DVMCP response
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        res.writeHead(proxyRes.statusCode, headers);
         
         // Pipe response data
         proxyRes.pipe(res);

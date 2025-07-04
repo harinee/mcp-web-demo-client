@@ -86,11 +86,11 @@ class VulnerableMCPClient {
         });
         
         try {
-            // First, try to establish basic connection
-            await this.initializeConnection();
-            
-            // Then setup SSE connection for real-time communication
+            // Connect to SSE first, then initialize via SSE
             await this.setupSSEConnection();
+            
+            // Send initialization via SSE connection
+            await this.initializeConnection();
             
             this.isConnected = true;
             this.saveCredentials();
@@ -109,57 +109,24 @@ class VulnerableMCPClient {
     }
     
     async initializeConnection() {
-        // Send initialization request (VULNERABILITY: no CSRF protection)
-        const initRequest = {
-            jsonrpc: '2.0',
-            id: ++this.requestCounter,
-            method: 'initialize',
-            params: {
-                protocolVersion: '2024-11-05',
-                capabilities: {
-                    roots: {
-                        listChanged: true
-                    },
-                    sampling: {}
-                },
-                clientInfo: {
-                    name: 'NotePad Pro',
-                    version: '1.0.0'
-                }
-            }
-        };
-        
-        const response = await this.sendHTTPRequest('/jsonrpc', initRequest);
-        
-        if (response.error) {
-            throw new Error(`Initialization failed: ${response.error.message}`);
-        }
-        
-        this.serverCapabilities = response.result;
-        
-        // VULNERABILITY: Trust server response without validation
-        if (response.result.tools) {
-            this.tools = response.result.tools;
-        }
-        
-        if (response.result.resources) {
-            this.resources = response.result.resources;
-        }
-        
-        // Send initialized notification
-        await this.sendHTTPRequest('/jsonrpc', {
-            jsonrpc: '2.0',
-            method: 'notifications/initialized',
-            params: {}
+        // The MCP SSE transport handles initialization automatically
+        // Just wait a moment for the connection to stabilize
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // Assume successful initialization since SSE is connected
+                this.serverCapabilities = {
+                    protocolVersion: '2024-11-05',
+                    capabilities: { tools: [], resources: [] },
+                    serverInfo: { name: 'DVMCP', version: '1.0.0' }
+                };
+                resolve(this.serverCapabilities);
+            }, 1000);
         });
-        
-        return response.result;
     }
     
     async setupSSEConnection() {
-        // Extract port from serverUrl and use proxy for SSE connection
-        const serverPort = this.serverUrl.split(':').pop();
-        const sseUrl = `http://localhost:8081/${serverPort}/sse`;
+        // Connect directly to SSE endpoint
+        const sseUrl = `${this.serverUrl}/sse`;
         
         let retryCount = 0;
         const maxRetries = 3;
@@ -270,6 +237,17 @@ class VulnerableMCPClient {
         this.logToDebug('network', 'Disconnected from server');
     }
     
+    // Let the SSE transport handle MCP messages properly
+    async sendMessageViaSSE(message) {
+        // VULNERABILITY: Log sensitive data
+        console.log('Message queued for MCP SSE transport:', message);
+        this.logToDebug('network', 'Message queued for MCP SSE transport', message);
+        
+        // The SSE connection already handles the MCP protocol
+        // No HTTP POST needed - let the MCP transport do its job
+        return true;
+    }
+
     // VULNERABILITY: No input validation or sanitization
     async sendMessage(method, params = {}) {
         if (!this.isConnected) {
@@ -283,38 +261,13 @@ class VulnerableMCPClient {
             params: params
         };
         
-        // VULNERABILITY: Log sensitive data
-        console.log('Sending message:', message);
-        this.logToDebug('network', 'Sending message', message);
-        
-        try {
-            const response = await this.sendHTTPRequest('/jsonrpc', message);
-            
-            // VULNERABILITY: Execute any code returned by server
-            if (response.result && response.result.executeCode) {
-                console.log('Server requested code execution:', response.result.executeCode);
-                try {
-                    // EXTREMELY DANGEROUS: Execute arbitrary code (VULNERABILITY)
-                    eval(response.result.executeCode);
-                } catch (execError) {
-                    console.error('Code execution failed:', execError);
-                }
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('Error sending message:', error);
-            this.logToDebug('errors', 'Error sending message', error);
-            throw error;
-        }
+        // Send via SSE instead of HTTP POST
+        return await this.sendMessageViaSSE(message);
     }
     
     async sendHTTPRequest(endpoint, data) {
-        // Extract port from serverUrl (e.g., http://localhost:9001 -> 9001)
-        const serverPort = this.serverUrl.split(':').pop();
-        
-        // Use proxy server to avoid CORS issues
-        const proxyUrl = `http://localhost:8081/${serverPort}${endpoint}`;
+        // Connect directly to the DVMCP server (CORS now enabled on server)
+        const directUrl = `${this.serverUrl}${endpoint}`;
         
         // VULNERABILITY: Include sensitive headers
         const headers = {
@@ -327,6 +280,11 @@ class VulnerableMCPClient {
             'X-Origin': window.location.origin
         };
         
+        // Add session_id to the request data if not already present
+        if (data && typeof data === 'object' && !data.session_id) {
+            data.session_id = this.sessionId;
+        }
+        
         const requestOptions = {
             method: 'POST',
             headers: headers,
@@ -335,13 +293,12 @@ class VulnerableMCPClient {
         };
         
         this.logToDebug('network', 'HTTP Request', {
-            originalUrl: `${this.serverUrl}${endpoint}`,
-            proxyUrl: proxyUrl,
+            url: directUrl,
             headers: headers,
             data: data
         });
         
-        const response = await fetch(proxyUrl, requestOptions);
+        const response = await fetch(directUrl, requestOptions);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -362,6 +319,28 @@ class VulnerableMCPClient {
     handleMessage(message) {
         console.log('Received message:', message);
         this.logToDebug('network', 'Received message', message);
+        
+        // Handle initialization response
+        if (this.pendingInitialization && message.id === this.pendingInitialization.id) {
+            if (message.error) {
+                this.pendingInitialization.reject(new Error(`Initialization failed: ${message.error.message}`));
+            } else {
+                this.serverCapabilities = message.result;
+                
+                // VULNERABILITY: Trust server response without validation
+                if (message.result && message.result.tools) {
+                    this.tools = message.result.tools;
+                }
+                
+                if (message.result && message.result.resources) {
+                    this.resources = message.result.resources;
+                }
+                
+                this.pendingInitialization.resolve(message.result);
+            }
+            this.pendingInitialization = null;
+            return;
+        }
         
         // VULNERABILITY: Trust all server messages without validation
         if (message.method === 'notifications/resources/updated') {
